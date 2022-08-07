@@ -63,10 +63,12 @@ def compute_params(modulus, generator=None):
         repr_shave_bits = 64
 
     r_exp = int()
-    if mod_bits % 64 == 0:
-        r_exp = mod_bits + 64
+
     if mod_bits < 256:
         r_exp = 256
+    else:
+        # Round up
+        r_exp = int(1 + mod_bits / 64) * 64
 
     r = (2 ** r_exp) % modulus
 
