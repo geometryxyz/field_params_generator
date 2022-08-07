@@ -2,22 +2,18 @@
 import sys
 import os
 
-# Converts value to 16-character hexadecimal chunks.
-def hexify_to_chunks(value, num_chunks=4):
-    correct_length = (num_chunks == 4 or num_chunks == 5)
-    assert(correct_length)
-
-    hex_representation = str(hex(value)).split('x')[-1]
-    hex_length = 64
-    if num_chunks == 5:
-        hex_length = 80
-
-    padded = hex_representation.rjust(hex_length, '0')
+# Converts a value to 16-character hexadecimal chunks.
+# The minimum number of chunks is 4.
+def hexify_to_chunks(value, num_chunks):
+    assert(num_chunks >= 4)
 
     chunk_length = 16
-    assert(num_chunks * chunk_length >= len(padded))
+    hex_repr = str(hex(value)).split('x')[-1]
 
-    output = ""
+    hex_length = num_chunks * chunk_length
+    padded = hex_repr.rjust(hex_length, '0')
+
+    output = str()
     for i in range(0, num_chunks):
         start = (num_chunks - i - 1) * chunk_length
         end = start + chunk_length
@@ -30,13 +26,17 @@ def hexify_to_chunks(value, num_chunks=4):
 
     return output
 
+
 def compute_t_s(modulus):
-    T = modulus - 1
-    S = 0
-    while T%2==0:
-        S = S+1
-        T = T/2 
-    return int(T), int(S)
+    t = modulus - 1
+    s = 0
+
+    while t % 2 == 0:
+        s += 1
+        t /= 2
+
+    return int(t), int(s)
+
 
 def square_mult_reduce(base, power, modulo):
     power_string = str(bin(power)).split('b')[-1]
@@ -49,8 +49,10 @@ def square_mult_reduce(base, power, modulo):
             
     return result
 
+
 def compute_mod_bits(modulus):
     return len(str(bin(modulus)).split('b')[-1])
+
 
 def compute_params(modulus, generator=None):
     mod_bits = compute_mod_bits(modulus)
@@ -104,13 +106,27 @@ def compute_params(modulus, generator=None):
 
 def main(modulus, generator=None):
     mod_bits = compute_mod_bits(modulus)
-    to_hex = hexify_to_chunks
-    if mod_bits == 256:
-        to_hex = lambda value: hexify_to_chunks(value, 5)
+
+    num_chunks = 4
+    if mod_bits >= 256:
+        b = (1 + int(mod_bits / 64)) * 64
+        num_chunks = b / 64
 
     params = compute_params(modulus, generator)
+
+    keys_not_to_hexify = [
+        'TWO_ADICITY',
+        'INV',
+        'MODULUS_BITS',
+        'CAPACITY',
+        'REPR_SHAVE_BITS'
+    ]
+
     for key, val in params.items():
-        print("{}: {}\n{}\n".format(key, val, to_hex(val)))
+        if key in keys_not_to_hexify:
+            print("{}: {}\n".format(key, val))
+        else:
+            print("{}: {}\n{}\n".format(key, val, hexify_to_chunks(val, num_chunks)))
 
 
 if __name__ == "__main__":
