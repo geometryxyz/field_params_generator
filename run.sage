@@ -1,4 +1,5 @@
 #!/usr/bin/env sage
+import argparse
 import sys
 import os
 
@@ -132,18 +133,28 @@ def main(modulus, generator=None):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Please specify the field modulus (and optionally, the generator) as such:")
-        print("sage", __file__, "<FIELD MODULUS> <GENERATOR (optional)>")
-    else:
-        modulus_str = sys.argv[1]
-        if modulus_str.startswith('0x'):
-            modulus_str = int(sys.argv[1], 16)
-        else:
-            modulus_str = int(sys.argv[1], 10)
+    parser = argparse.ArgumentParser(description='Generate ark-ff code to specify a finite field.')
+    parser.add_argument('-m', '--modulus', required=True, type=str, help='The modulus')
+    parser.add_argument('-g', '--generator', required=False, type=int, help='The generator')
+    parser.add_argument('-t', '--template-output', required=False, type=str, help='The Rust file to generate')
+    parser.add_argument('-f', '--field-type', required=False, type=str, help='The name of the field type (e.g. Fr or Fq)')
+    args = parser.parse_args()
 
-        if len(sys.argv) > 2:
-            generator = sys.argv[2]
-            main(modulus_str, generator)
-        else:
-            main(modulus_str)
+    if args.template_output and args.field_type is None:
+        print('Please specify a field type (e.g. Fr or Fq)')
+        sys.exit()
+
+    modulus = None
+    modulus_str = args.modulus
+    if modulus_str.startswith('0x'):
+        modulus = int(modulus_str, 16)
+    else:
+        modulus = int(modulus_str, 10)
+
+    if args.generator:
+        main(modulus, args.generator)
+    else:
+        main(modulus)
+
+    # if args.gen_template:
+        # TODO
