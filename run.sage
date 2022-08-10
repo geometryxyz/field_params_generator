@@ -107,30 +107,39 @@ def compute_params(modulus, generator=None):
         'TWO_ADIC_ROOT_OF_UNITY': two_adic_root_of_unity
     }
 
-def main(modulus, generator=None):
-    mod_bits = compute_mod_bits(modulus)
+KEYS_NOT_TO_HEXIFY = [
+    'TWO_ADICITY',
+    'INV',
+    'MODULUS_BITS',
+    'CAPACITY',
+    'REPR_SHAVE_BITS'
+]
 
-    num_chunks = 4
-    if mod_bits >= 256:
-        b = (1 + int(mod_bits / 64)) * 64
-        num_chunks = b / 64
-
-    params = compute_params(modulus, generator)
-
-    keys_not_to_hexify = [
-        'TWO_ADICITY',
-        'INV',
-        'MODULUS_BITS',
-        'CAPACITY',
-        'REPR_SHAVE_BITS'
-    ]
+def print_params(params):
 
     for key, val in params.items():
-        if key in keys_not_to_hexify:
+        if key in KEYS_NOT_TO_HEXIFY:
             print("{}: {}\n".format(key, val))
         else:
             print("{}: {}\n{}\n".format(key, val, hexify_to_chunks(val, num_chunks)))
 
+def generate_rust_code(params, output_file, field_type, num_chunks, bigint_size):
+    TEMPLATE = os.path.join(os.path.dirname(__file__), 'field_template.rs')
+    template_content = open(TEMPLATE).read()
+
+    template_content = template_content.replace('/*BIGINT_SIZE*/', str(bigint_size))
+    template_content = template_content.replace('/*F_TYPE*/', str(field_type))
+
+    for key, val in params.items():
+        k = "/*{}*/".format(key)
+        if key in KEYS_NOT_TO_HEXIFY:
+            template_content = template_content.replace(k, str(val))
+        else:
+            template_content = template_content.replace(k, hexify_to_chunks(val, num_chunks))
+
+    print(template_content)
+    with open(output_file, 'w') as f:
+        f.write(template_content)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate ark-ff code to specify a finite field.')
@@ -141,7 +150,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.template_output and args.field_type is None:
-        print('Please specify a field type (e.g. Fr or Fq)')
+        print('Please specify a field type using -f (e.g. Fr or Fq)')
         sys.exit()
 
     modulus = None
@@ -151,10 +160,43 @@ if __name__ == "__main__":
     else:
         modulus = int(modulus_str, 10)
 
-    if args.generator:
-        main(modulus, args.generator)
-    else:
-        main(modulus)
+    mod_bits = compute_mod_bits(modulus)
 
-    # if args.gen_template:
-        # TODO
+    # Calculate the BigInt size
+    bigint_size = None
+    if mod_bits < 256:
+        bigint_size = 256
+    elif mod_bits >= 256 and mod_bits < 320: 
+        bigint_size = 320
+    elif mod_bits >= 320 and mod_bits < 384: 
+        bigint_size = 384
+    elif mod_bits >= 384 and mod_bits < 448: 
+        bigint_size = 448
+    elif mod_bits >= 448 and mod_bits < 768: 
+        bigint_size = 768
+    elif mod_bits >= 768 and mod_bits < 832: 
+        bigint_size = 832
+    else:
+        print("Unable to generate Rust code because the required BigInteger size is not available.")
+
+    num_chunks = 4
+    if mod_bits >= 256:
+        b = (1 + int(mod_bits / 64)) * 64
+        num_chunks = b / 64
+
+    params = None
+    if args.generator:
+        params = compute_params(modulus, args.generator)
+    else:
+        params = compute_params(modulus)
+
+    print_params(params)
+
+    if args.template_output and args.field_type:
+        generate_rust_code(
+            params,
+            args.template_output,
+            args.field_type,
+            num_chunks,
+            bigint_size
+        )
