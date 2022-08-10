@@ -4,10 +4,27 @@ The `run.sage` file is a SageMath script which generates `ark_ff` parameters
 for finite fields with only the field modulus (and optionally, the generator)
 as command-line inputs.
 
+This script can also output a Rust file compatible with ark-ff 0.3.0 which
+specifies said field.
+
 ## Usage
 
 ```
-sage run.sage.py <FIELD MODULUS> <GENERATOR (optional)>
+$ sage run.sage --help
+usage: run.sage.py [-h] -m MODULUS [-g GENERATOR] [-t TEMPLATE_OUTPUT] [-f FIELD_TYPE]
+
+Generate ark-ff code to specify a finite field.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -m MODULUS, --modulus MODULUS
+                        The modulus
+  -g GENERATOR, --generator GENERATOR
+                        The generator
+  -t TEMPLATE_OUTPUT, --template-output TEMPLATE_OUTPUT
+                        The Rust file to generate
+  -f FIELD_TYPE, --field-type FIELD_TYPE
+                        The name of the field type (e.g. Fr or Fq)
 ```
 
 ## Examples
