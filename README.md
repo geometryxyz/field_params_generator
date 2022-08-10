@@ -2,10 +2,10 @@
 
 The `run.sage` file is a SageMath script which generates `ark_ff` parameters
 for finite fields with only the field modulus (and optionally, the generator)
-as command-line inputs.
+as command-line inputs. It can also output a Rust file compatible with ark-ff
+0.3.0 which specifies said field.
 
-This script can also output a Rust file compatible with ark-ff 0.3.0 which
-specifies said field.
+It was tested with SageMath version 9.2, Release Date: 2020-10-24.
 
 ## Usage
 
